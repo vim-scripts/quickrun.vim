@@ -10,6 +10,7 @@ Default is set in the following languages:
 - c
 - cpp
 - dosbatch
+- erlang
 - eruby
 - go
 - groovy

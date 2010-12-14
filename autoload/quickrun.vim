@@ -1,5 +1,5 @@
 " Run commands quickly.
-" Version: 0.4.2
+" Version: 0.4.3
 " Author : thinca <thinca+vim@gmail.com>
 " License: Creative Commons Attribution 2.1 Japan License
 "          <http://creativecommons.org/licenses/by/2.1/jp/deed.en>
@@ -17,10 +17,11 @@ let g:quickrun#default_config = {
 \   'output': '',
 \   'append': 0,
 \   'runmode': 'simple',
+\   'cmdopt': '',
 \   'args': '',
 \   'output_encode': '&fenc:&enc',
 \   'tempfile'  : '{tempname()}',
-\   'exec': '%c %s %a',
+\   'exec': '%c %o %s %a',
 \   'split': '{winwidth(0) * 2 < winheight(0) * 5 ? "" : "vertical"}',
 \   'into': 0,
 \   'eval': 0,
@@ -29,52 +30,55 @@ let g:quickrun#default_config = {
 \   'running_mark': ':-)',
 \ },
 \ 'awk': {
-\   'exec': '%c -f %s %a',
+\   'exec': '%c %o -f %s %a',
 \ },
 \ 'bash': {},
 \ 'c':
 \   s:is_win && executable('cl') ? {
 \     'command': 'cl',
-\     'exec': ['%c %s /nologo /Fo%s:p:r.obj /Fe%s:p:r.exe > nul',
+\     'exec': ['%c %o %s /nologo /Fo%s:p:r.obj /Fe%s:p:r.exe > nul',
 \               '%s:p:r.exe %a', 'del %s:p:r.exe %s:p:r.obj'],
 \     'tempfile': '{tempname()}.c',
 \   } :
 \   executable('gcc') ? {
 \     'command': 'gcc',
-\     'exec': ['%c %s -o %s:p:r', '%s:p:r %a', 'rm -f %s:p:r'],
+\     'exec': ['%c %o %s -o %s:p:r', '%s:p:r %a', 'rm -f %s:p:r'],
 \     'tempfile': '{tempname()}.c',
 \   } : {},
 \ 'cpp':
 \   s:is_win && executable('cl') ? {
 \     'command': 'cl',
-\     'exec': ['%c %s /nologo /Fo%s:p:r.obj /Fe%s:p:r.exe > nul',
+\     'exec': ['%c %o %s /nologo /Fo%s:p:r.obj /Fe%s:p:r.exe > nul',
 \               '%s:p:r.exe %a', 'del %s:p:r.exe %s:p:r.obj'],
 \     'tempfile': '{tempname()}.cpp',
 \   } :
 \   executable('g++') ? {
 \     'command': 'g++',
-\     'exec': ['%c %s -o %s:p:r', '%s:p:r %a', 'rm -f %s:p:r'],
+\     'exec': ['%c %o %s -o %s:p:r', '%s:p:r %a', 'rm -f %s:p:r'],
 \     'tempfile': '{tempname()}.cpp',
 \   } : {},
+\ 'erlang': {
+\   'command': 'escript',
+\ },
 \ 'eruby': {
 \   'command': 'erb',
-\   'exec': '%c -T - %s %a',
+\   'exec': '%c %o -T - %s %a',
 \ },
 \ 'go':
 \   $GOARCH ==# '386' ? {
 \     'exec':
 \       s:is_win ?
-\         ['8g %s', '8l -o %s:p:r.exe %s:p:r.8', '%s:p:r.exe %a', 'del /F %s:p:r.exe'] :
-\         ['8g %s', '8l -o %s:p:r %s:p:r.8', '%s:p:r %a', 'rm -f %s:p:r']
+\         ['8g %o %s', '8l -o %s:p:r.exe %s:p:r.8', '%s:p:r.exe %a', 'del /F %s:p:r.exe'] :
+\         ['8g %o %s', '8l -o %s:p:r %s:p:r.8', '%s:p:r %a', 'rm -f %s:p:r']
 \   } :
 \   $GOARCH ==# 'amd64' ? {
-\     'exec': ['6g %s', '6l -o %s:p:r %s:p:r.6', '%s:p:r %a', 'rm -f %s:p:r'],
+\     'exec': ['6g %o %s', '6l -o %s:p:r %s:p:r.6', '%s:p:r %a', 'rm -f %s:p:r'],
 \   } :
 \   $GOARCH ==# 'arm' ? {
-\     'exec': ['5g %s', '5l -o %s:p:r %s:p:r.5', '%s:p:r %a', 'rm -f %s:p:r'],
+\     'exec': ['5g %o %s', '5l -o %s:p:r %s:p:r.5', '%s:p:r %a', 'rm -f %s:p:r'],
 \   } : {},
 \ 'groovy': {
-\   'exec': '%c -c {&fenc==""?&enc:&fenc} %s %a',
+\   'cmdopt': '-c {&fenc==""?&enc:&fenc}'
 \ },
 \ 'haskell': {
 \   'command': 'runghc',
@@ -82,7 +86,7 @@ let g:quickrun#default_config = {
 \   'eval_template': 'main = print $ %s',
 \ },
 \ 'java': {
-\   'exec': ['javac %s', '%c %s:t:r %a', ':call delete("%S:t:r.class")'],
+\   'exec': ['javac %o %s', '%c %s:t:r %a', ':call delete("%S:t:r.class")'],
 \   'output_encode': '&tenc:&enc',
 \ },
 \ 'javascript': {
@@ -114,7 +118,7 @@ let g:quickrun#default_config = {
 \ 'php': {},
 \ 'r': {
 \   'command': 'R',
-\   'exec': '%c --no-save --slave %a < %s',
+\   'exec': '%c %o --no-save --slave %a < %s',
 \ },
 \ 'ruby': {'eval_template': " p proc {\n%s\n}.call"},
 \ 'scala': {
@@ -122,7 +126,7 @@ let g:quickrun#default_config = {
 \ },
 \ 'scheme': {
 \   'command': 'gosh',
-\   'exec': '%c %s:p %a',
+\   'exec': '%c %o %s:p %a',
 \   'eval_template': '(display (begin %s))',
 \ },
 \ 'sed': {},
@@ -305,6 +309,8 @@ function! s:Runner.normalize()  " {{{2
   endif
 
   let self.source_name = self.get_source_name()
+  let config.cmdopt = self.expand(config.cmdopt)
+  let config.args = self.expand(config.args)
 endfunction
 
 
@@ -574,7 +580,6 @@ endfunction
 " ----------------------------------------------------------------------------
 " Build a command to execute it from options.
 function! s:Runner.build_command(tmpl)  " {{{2
-  " TODO: Add rules.
   " FIXME: Possibility to be multiple expanded.
   let config = self.config
   let shebang = self.detect_shebang()
@@ -582,6 +587,7 @@ function! s:Runner.build_command(tmpl)  " {{{2
   let rule = [
   \  ['c', shebang != '' ? string(shebang) : 'config.command'],
   \  ['s', src], ['S', src],
+  \  ['o', 'config.cmdopt'],
   \  ['a', 'config.args'],
   \  ['\%', string('%')],
   \]
@@ -771,6 +777,9 @@ function! s:Runner.expand(str)  " {{{2
         let e = matchend(rest, '\\\@<!}')
         let expr = substitute(rest[1 : e - 2], '\\}', '}', 'g')
       endif
+      if e < 0
+        break
+      endif
       try
         let result .= eval(expr)
       catch
@@ -791,6 +800,9 @@ function! s:Runner.output(result)  " {{{2
   let result = a:result
   if get(config, 'output_encode', '') != ''
     let enc = split(self.expand(config.output_encode), '[^[:alnum:]-_]')
+    if len(enc) == 1
+      let enc += [&encoding]
+    endif
     if len(enc) == 2
       let [from, to] = enc
       let result = s:iconv(result, from, to)
@@ -970,7 +982,7 @@ endfunction
 
 
 function! quickrun#complete(lead, cmd, pos)  " {{{2
-  let line = split(a:cmd[:a:pos], '', 1)
+  let line = split(a:cmd[:a:pos - 1], '', 1)
   let head = line[-1]
   if 2 <= len(line) && line[-2] =~ '^-'
     let opt = line[-2][1:]

@@ -1,6 +1,6 @@
 *quickrun.txt*	コマンドを素早く実行します。
 
-Version: 0.4.2
+Version: 0.4.3
 Author : thinca <thinca+vim@gmail.com>
 License: クリエイティブ・コモンズの表示 2.1 日本ライセンス
          <http://creativecommons.org/licenses/by/2.1/jp/>
@@ -152,12 +152,15 @@ command					*quickrun-option-command*
 			exec 内の %c に展開される文字列です。指定されなかった
 			場合は、type と同じ値が使用されます。
 
+cmdopt (*)				*quickrun-option-cmdopt*
+			exec 内の %o に展開される文字列です。
+
 src					*quickrun-option-src*
 			実行するプログラムのソースとなる文字列を指定します。デ
 			フォルトでは編集中のファイル全体ですが、指定することで
 			変更が可能です。
 
-args					*quickrun-option-args*
+args (*)				*quickrun-option-args*
 			exec の %a に展開される文字列です。
 
 input (*)				*quickrun-option-input*
@@ -251,8 +254,9 @@ mode					*quickrun-option-mode*
 				vnoremap <silent> <F5> :QuickRun -mode v<CR>
 
 output_encode (*)			*quickrun-option-output_encode*
-			出力の文字コードを変換したい場合に、 "from:to" の形式
-			で指定します。
+			出力の文字コードを変換したい場合に、"from:to" の形式
+			で指定します。":to" は省略できます。その場合、
+			"from:&enc" と解釈されます。
 			デフォルトは "&fenc:&enc" です。
 
 shebang					*quickrun-option-shebang*
@@ -313,10 +317,11 @@ exec オプションの書式				*quickrun-exec-format*
 シンボル	展開値 ~
 --------        ------
 %%		%自身
-%c		コマンド
-%s		ソースファイル
+%c		コマンド (|quickrun-option-command|)
+%o		コマンドラインオプション (|quickrun-option-cmdopt|)
+%s		ソースファイル (|quickrun-option-src|)
 %S		ソースファイル(エスケープなし)
-%a		スクリプトの引数
+%a		スクリプトの引数 (|quickrun-option-args|)
 
 ファイルを指定するシンボルには、|filename-modifiers| が使えます。
 >
@@ -389,6 +394,15 @@ exec を展開した結果先頭の文字が ":" だった場合、Vim のコマ
 
 ==============================================================================
 更新履歴					*quickrun-changelog*
+
+0.4.3	2010-12-14
+	- デフォルトの設定に erlang を追加。
+	- |quickrun-option-cmdopt| オプションを追加。
+	- |quickrun-option-args| を展開するようにした。
+	- コマンドラインの補完を改善。
+	- |quickrun-option-output_encode| の ":to" を省略できるようにした。
+	- |quickrun-syntax-option| が適用されるオプションの末尾が "$" や "&"
+	  だったり "{" が閉じられていなかった場合、無限ループするバグを修正。
 
 0.4.2	2010-10-12
 	- デフォルトのタイプ名に "_" を追加。
