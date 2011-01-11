@@ -1,6 +1,6 @@
 *quickrun.txt*	コマンドを素早く実行します。
 
-Version: 0.4.3
+Version: 0.4.4
 Author : thinca <thinca+vim@gmail.com>
 License: クリエイティブ・コモンズの表示 2.1 日本ライセンス
          <http://creativecommons.org/licenses/by/2.1/jp/>
@@ -166,8 +166,6 @@ args (*)				*quickrun-option-args*
 input (*)				*quickrun-option-input*
 			標準入力に流し込むファイルを指定します。先頭が = で始
 			まっていた場合、それ以降の文字列を入力として扱います。
-			この場合のみ文字列は |quickrun-syntax-option| で展開さ
-			れます。
 
 output (*)				*quickrun-option-output*
 			結果の出力方法を指定します。
@@ -320,14 +318,14 @@ exec オプションの書式				*quickrun-exec-format*
 %c		コマンド (|quickrun-option-command|)
 %o		コマンドラインオプション (|quickrun-option-cmdopt|)
 %s		ソースファイル (|quickrun-option-src|)
-%S		ソースファイル(エスケープなし)
 %a		スクリプトの引数 (|quickrun-option-args|)
 
-ファイルを指定するシンボルには、|filename-modifiers| が使えます。
+%c と %s はファイルを指定するシンボルです。これらは |shellescape()| でエスケー
+プされます。シンボルに大文字(%C %S)を使うことでこれを回避できます。
+また、これらには |filename-modifiers| が使えます。
 >
 	java %S:r:gs?[/\\]?.?
 <
-また、ファイルを指定するシンボルは |shellescape()| でエスケープされます。
 コマンドに改行文字が含まれている場合は空白文字に置き換えられます。
 
 Vim のコマンドを実行する
@@ -355,7 +353,7 @@ exec を展開した結果先頭の文字が ":" だった場合、Vim のコマ
 二層構造の辞書を指定します。
 {type} はコマンドラインから |quickrun-option-type| で指定される値です。未指定の
 場合は 'filetype' が使用されます。
-特殊なタイプ名 "_" と "*" には全ての {type} のデフォルト値を指定できます。
+特殊なタイプ名 "_" には全ての {type} のデフォルト値を指定できます。
 
 全体共通の設定よりタイプ毎の設定が、タイプ毎の設定よりコマンドで指定された引数
 が優先されます。
@@ -385,8 +383,7 @@ exec を展開した結果先頭の文字が ":" だった場合、Vim のコマ
 3. |g:quickrun_config| の {type}
 4. |g:quickrun#default_config| の {type}
 5. |g:quickrun_config| の '_'
-6. |g:quickrun_config| の '*'
-7. |g:quickrun#default_config| の '_'
+6. |g:quickrun#default_config| の '_'
 
 1 や 2 で {type} を設定しておくことで 3 で通常とは別の {type} を参照できます。
 
@@ -394,6 +391,13 @@ exec を展開した結果先頭の文字が ":" だった場合、Vim のコマ
 
 ==============================================================================
 更新履歴					*quickrun-changelog*
+
+0.4.4	2011-01-11
+	- |quickrun-option-input| を常に展開するように変更。
+	- |quickrun-option-runmode| が "async:python" の時に結果が出ないことが
+	  あるのを修正。
+	- Windows で 'shell' が "cmd.exe" 以外だった場合の挙動を改善。
+	- "%c" をファイルを指定するシンボルに変更。
 
 0.4.3	2010-12-14
 	- デフォルトの設定に erlang を追加。

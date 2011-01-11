@@ -1,5 +1,5 @@
 " Run commands quickly.
-" Version: 0.4.3
+" Version: 0.4.4
 " Author : thinca <thinca+vim@gmail.com>
 " License: Creative Commons Attribution 2.1 Japan License
 "          <http://creativecommons.org/licenses/by/2.1/jp/deed.en>
@@ -9,6 +9,10 @@ set cpo&vim
 
 let s:available_vimproc = globpath(&runtimepath, 'autoload/vimproc.vim') != ''
 let s:is_win = has('win32') || has('win64')
+
+function! s:is_cmd_exe()  " {{{2
+  return &shell =~? 'cmd\.exe'
+endfunction
 
 unlet! g:quickrun#default_config  " {{{1
 let g:quickrun#default_config = {
@@ -26,7 +30,7 @@ let g:quickrun#default_config = {
 \   'into': 0,
 \   'eval': 0,
 \   'eval_template': '%s',
-\   'shellcmd': s:is_win ? 'silent !"%s" & pause' : '!%s',
+\   'shellcmd': s:is_cmd_exe() ? 'silent !%s & pause ' : '!%s',
 \   'running_mark': ':-)',
 \ },
 \ 'awk': {
@@ -256,12 +260,12 @@ function! s:Runner.normalize()  " {{{2
   endfor
 
   if has_key(config, 'input')
-    let input = config.input
+    let input = self.expand(config.input)
     try
-      let config.input = input[0] == '=' ? self.expand(input[1:])
+      let config.input = input[0] == '=' ? input[1:]
       \                                  : join(readfile(input, 'b'), "\n")
     catch
-      throw 'Can not treat input: ' . v:exception
+      throw 'quickrun: Can not treat input: ' . v:exception
     endtry
   else
     let config.input = ''
@@ -326,7 +330,7 @@ function! s:Runner.run()  " {{{2
 
   let [runmode; args] = split(self.config.runmode, ':')
   if !has_key(self, 'run_' . runmode)
-    throw 'Invalid runmode: ' . runmde
+    throw 'quickrun: Invalid runmode: ' . runmode
   endif
   call call(self['run_' . runmode], [commands] + args, self)
 endfunction
@@ -360,27 +364,37 @@ function! s:Runner.execute(cmd)  " {{{2
     return quickrun#execute(a:cmd)
   endif
 
-  let cmd = a:cmd
-  let config = self.config
-  if get(config, 'output') == '!'
-    let in = config.input
-    if in != ''
-      let inputfile = tempname()
-      call writefile(split(in, "\n", 1), inputfile, 'b')
-      let cmd .= ' <' . self.shellescape(inputfile)
+  try
+    if s:is_cmd_exe()
+      let sxq = &shellxquote
+      let &shellxquote = '"'
+    endif
+    let cmd = a:cmd
+    let config = self.config
+    if get(config, 'output') == '!'
+      let in = config.input
+      if in != ''
+        let inputfile = tempname()
+        call writefile(split(in, "\n", 1), inputfile, 'b')
+        let cmd .= ' <' . self.shellescape(inputfile)
+      endif
+
+      execute s:iconv(printf(config.shellcmd, cmd), &encoding, &termencoding)
+
+      if exists('inputfile') && filereadable(inputfile)
+        call delete(inputfile)
+      endif
+      return 0
     endif
 
-    execute s:iconv(printf(config.shellcmd, cmd), &encoding, &termencoding)
-
-    if exists('inputfile') && filereadable(inputfile)
-      call delete(inputfile)
+    let cmd = s:iconv(cmd, &encoding, &termencoding)
+    return config.input == '' ? system(cmd)
+    \                         : system(cmd, config.input)
+  finally
+    if s:is_cmd_exe()
+      let &shellxquote = sxq
     endif
-    return 0
-  endif
-
-  let cmd = s:iconv(cmd, &encoding, &termencoding)
-  return config.input == '' ? system(cmd)
-  \                         : system(cmd, config.input)
+  endtry
 endfunction
 
 
@@ -388,7 +402,7 @@ endfunction
 function! s:Runner.run_async(commands, ...)  " {{{2
   let [type; args] = a:000
   if !has_key(self, 'run_async_' . type)
-    throw 'Unknown async type: ' . type
+    throw 'quickrun: Unknown async type: ' . type
   endif
   call call(self['run_async_' . type], [a:commands] + args, self)
 endfunction
@@ -397,7 +411,7 @@ endfunction
 
 function! s:Runner.run_async_vimproc(commands, ...)  " {{{2
   if !s:available_vimproc
-    throw 'runmode = async:vimproc needs vimproc.'
+    throw 'quickrun: runmode = async:vimproc needs vimproc.'
   endif
 
   let vimproc = vimproc#pgroup_open(join(a:commands, ' && '))
@@ -460,10 +474,10 @@ endfunction
 
 function! s:Runner.run_async_remote(commands, ...)  " {{{2
   if !has('clientserver') || v:servername == ''
-    throw 'runmode = async:remote needs +clientserver feature.'
+    throw 'quickrun: runmode = async:remote needs +clientserver feature.'
   endif
   if !s:is_win && !executable('sh')
-    throw 'Currently needs "sh" on other than MS Windows.  Sorry.'
+    throw 'quickrun: Currently needs "sh" on other than MS Windows.  Sorry.'
   endif
   let selfvim = s:is_win ? split($PATH, ';')[-1] . '\vim.exe' :
   \             !empty($_) ? $_ : v:progname
@@ -525,12 +539,13 @@ python <<EOM
 import vim, threading, subprocess, re
 
 class QuickRun(threading.Thread):
-    def __init__(self, cmds, key, input, iswin):
+    def __init__(self, cmds, key, input):
         threading.Thread.__init__(self)
         self.cmds = cmds
         self.key = key
+        if not input:
+          input = ''
         self.input = input
-        self.iswin = iswin
 
     def run(self):
         result = ''
@@ -564,14 +579,13 @@ endif
 
 function! s:Runner.run_async_python(commands, ...)  " {{{2
   if !has('python')
-    throw 'runmode = async:python needs +python feature.'
+    throw 'quickrun: runmode = async:python needs +python feature.'
   endif
   let l:key = string(s:register(self))
   let l:input = self.config.input
   python QuickRun(vim.eval('a:commands'),
   \               vim.eval('l:key'),
-  \               vim.eval('l:input'),
-  \               int(vim.eval('s:is_win'))).start()
+  \               vim.eval('l:input')).start()
 endfunction
 
 
@@ -584,17 +598,17 @@ function! s:Runner.build_command(tmpl)  " {{{2
   let config = self.config
   let shebang = self.detect_shebang()
   let src = string(self.source_name)
+  let command = shebang != '' ? string(shebang) : 'config.command'
   let rule = [
-  \  ['c', shebang != '' ? string(shebang) : 'config.command'],
+  \  ['c', command], ['C', command],
   \  ['s', src], ['S', src],
   \  ['o', 'config.cmdopt'],
   \  ['a', 'config.args'],
   \  ['\%', string('%')],
   \]
-  let file = ['s', 'S']
   let cmd = a:tmpl
   for [key, value] in rule
-    if 0 <= index(file, key)
+    if key =~? '[cs]'
       let value = 'fnamemodify('.value.',submatch(1))'
       if key =~# '\U'
         let value = printf(config.command =~ '^\s*:' ? 'fnameescape(%s)'
@@ -910,7 +924,7 @@ endfunction
 function! s:Runner.shellescape(str)  " {{{2
   if self.config.runmode =~# '^async:vimproc\%(:\d\+\)\?$'
     return "'" . substitute(a:str, '\\', '/', 'g') . "'"
-  elseif s:is_win
+  elseif s:is_cmd_exe()
     return '^"' . substitute(substitute(substitute(a:str,
     \             '[&|<>()^"%]', '^\0', 'g'),
     \             '\\\+\ze"', '\=repeat(submatch(0), 2)', 'g'),
@@ -973,9 +987,12 @@ function! quickrun#run(args)  " {{{2
     endif
 
     call runner.run()
-  catch
-    echoerr 'quickrun:' v:exception v:throwpoint
-    return
+  catch /^quickrun:/
+    echohl ErrorMsg
+    for line in split(v:exception, "\n")
+      echomsg line
+    endfor
+    echohl None
   endtry
 endfunction
 
@@ -1043,11 +1060,14 @@ endfunction
 function! quickrun#execute(...)  " {{{2
   " XXX: Can't get a result if a:cmd contains :redir command.
   let result = ''
-  redir => result
-  for cmd in a:000
-    silent execute cmd
-  endfor
-  redir END
+  try
+    redir => result
+    for cmd in a:000
+      silent execute cmd
+    endfor
+  finally
+    redir END
+  endtry
   return result
 endfunction
 
