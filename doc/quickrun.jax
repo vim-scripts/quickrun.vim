@@ -1,6 +1,6 @@
 *quickrun.txt*	コマンドを素早く実行します。
 
-Version: 0.4.4
+Version: 0.4.5
 Author : thinca <thinca+vim@gmail.com>
 License: クリエイティブ・コモンズの表示 2.1 日本ライセンス
          <http://creativecommons.org/licenses/by/2.1/jp/>
@@ -254,12 +254,14 @@ mode					*quickrun-option-mode*
 output_encode (*)			*quickrun-option-output_encode*
 			出力の文字コードを変換したい場合に、"from:to" の形式
 			で指定します。":to" は省略できます。その場合、
-			"from:&enc" と解釈されます。
-			デフォルトは "&fenc:&enc" です。
+			"from:&encoding" と解釈されます。
+			デフォルトは "&fileencoding" です。
 
 shebang					*quickrun-option-shebang*
 			0 以外を指定すると、 src の最初の行が #! で始まってた
-			場合にその後続の文字列を command として扱います。
+			場合にその後続の文字列を command として扱います。この
+			場合、%c はエスケープ処理(|quickrun-exec-format|)され
+			ません。
 			デフォルトは 1 です。
 
 tempfile (*)				*quickrun-option-tempfile*
@@ -391,6 +393,13 @@ exec を展開した結果先頭の文字が ":" だった場合、Vim のコマ
 
 ==============================================================================
 更新履歴					*quickrun-changelog*
+
+0.4.5	2011-02-03
+	- |g:quickrun#default_config| の go の値を改善。
+	- |g:quickrun#default_config| の javascript の値を改善。
+	- |quickrun-option-shebang| によるコマンドはエスケープを行わないように
+	  した。
+	- |quickrun-option-shebang| が常に有効になっていたのを修正。
 
 0.4.4	2011-01-11
 	- |quickrun-option-input| を常に展開するように変更。

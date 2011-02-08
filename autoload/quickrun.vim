@@ -1,5 +1,5 @@
 " Run commands quickly.
-" Version: 0.4.4
+" Version: 0.4.5
 " Author : thinca <thinca+vim@gmail.com>
 " License: Creative Commons Attribution 2.1 Japan License
 "          <http://creativecommons.org/licenses/by/2.1/jp/deed.en>
@@ -23,7 +23,7 @@ let g:quickrun#default_config = {
 \   'runmode': 'simple',
 \   'cmdopt': '',
 \   'args': '',
-\   'output_encode': '&fenc:&enc',
+\   'output_encode': '&fileencoding',
 \   'tempfile'  : '{tempname()}',
 \   'exec': '%c %o %s %a',
 \   'split': '{winwidth(0) * 2 < winheight(0) * 5 ? "" : "vertical"}',
@@ -68,19 +68,18 @@ let g:quickrun#default_config = {
 \   'command': 'erb',
 \   'exec': '%c %o -T - %s %a',
 \ },
-\ 'go':
-\   $GOARCH ==# '386' ? {
-\     'exec':
-\       s:is_win ?
-\         ['8g %o %s', '8l -o %s:p:r.exe %s:p:r.8', '%s:p:r.exe %a', 'del /F %s:p:r.exe'] :
-\         ['8g %o %s', '8l -o %s:p:r %s:p:r.8', '%s:p:r %a', 'rm -f %s:p:r']
-\   } :
-\   $GOARCH ==# 'amd64' ? {
-\     'exec': ['6g %o %s', '6l -o %s:p:r %s:p:r.6', '%s:p:r %a', 'rm -f %s:p:r'],
-\   } :
-\   $GOARCH ==# 'arm' ? {
-\     'exec': ['5g %o %s', '5l -o %s:p:r %s:p:r.5', '%s:p:r %a', 'rm -f %s:p:r'],
-\   } : {},
+\ 'go': {
+\   'exec':
+\     $GOARCH ==# '386' ? (s:is_win ?
+\       ['8g %o %s', '8l -o %s:p:r.exe %s:p:r.8', '%s:p:r.exe %a', 'del /F %s:p:r.exe'] :
+\       ['8g %o %s', '8l -o %s:p:r %s:p:r.8', '%s:p:r %a', 'rm -f %s:p:r']) :
+\     $GOARCH ==# 'amd64' ?
+\       ['6g %o %s', '6l -o %s:p:r %s:p:r.6', '%s:p:r %a', 'rm -f %s:p:r'] :
+\     $GOARCH ==# 'arm' ?
+\       ['5g %o %s', '5l -o %s:p:r %s:p:r.5', '%s:p:r %a', 'rm -f %s:p:r']
+\       : '',
+\   'output_encode': 'utf-8',
+\ },
 \ 'groovy': {
 \   'cmdopt': '-c {&fenc==""?&enc:&fenc}'
 \ },
@@ -91,7 +90,7 @@ let g:quickrun#default_config = {
 \ },
 \ 'java': {
 \   'exec': ['javac %o %s', '%c %s:t:r %a', ':call delete("%S:t:r.class")'],
-\   'output_encode': '&tenc:&enc',
+\   'output_encode': '&termencoding',
 \ },
 \ 'javascript': {
 \   'command': executable('js') ? 'js':
@@ -126,7 +125,7 @@ let g:quickrun#default_config = {
 \ },
 \ 'ruby': {'eval_template': " p proc {\n%s\n}.call"},
 \ 'scala': {
-\   'output_encode': '&tenc:&enc',
+\   'output_encode': '&termencoding',
 \ },
 \ 'scheme': {
 \   'command': 'gosh',
@@ -143,6 +142,9 @@ let g:quickrun#default_config = {
 \ },
 \ 'zsh': {},
 \}
+if g:quickrun#default_config.javascript.command ==# 'cscript'
+  let g:quickrun#default_config.javascript.cmdopt = '//Nologo'
+endif
 lockvar! g:quickrun#default_config
 
 
@@ -534,7 +536,9 @@ endfunction
 
 
 
+let s:python_loaded = 0
 if has('python')
+  try
 python <<EOM
 import vim, threading, subprocess, re
 
@@ -575,11 +579,17 @@ class QuickRun(threading.Thread):
     def vimstr(self, s):
         return "'" + s.replace("'", "''") + "'"
 EOM
+  let s:python_loaded = 1
+  catch
+    " XXX: This method make debugging to difficult.
+  endtry
 endif
 
 function! s:Runner.run_async_python(commands, ...)  " {{{2
   if !has('python')
     throw 'quickrun: runmode = async:python needs +python feature.'
+  elseif !s:python_loaded
+    throw 'quickrun: Loading python code failed.'
   endif
   let l:key = string(s:register(self))
   let l:input = self.config.input
@@ -596,7 +606,7 @@ endfunction
 function! s:Runner.build_command(tmpl)  " {{{2
   " FIXME: Possibility to be multiple expanded.
   let config = self.config
-  let shebang = self.detect_shebang()
+  let shebang = config.shebang ? self.detect_shebang() : ''
   let src = string(self.source_name)
   let command = shebang != '' ? string(shebang) : 'config.command'
   let rule = [
@@ -606,9 +616,10 @@ function! s:Runner.build_command(tmpl)  " {{{2
   \  ['a', 'config.args'],
   \  ['\%', string('%')],
   \]
+  let is_file = '[' . (shebang != '' ? 's' : 'cs') . ']'
   let cmd = a:tmpl
   for [key, value] in rule
-    if key =~? '[cs]'
+    if key =~? is_file
       let value = 'fnamemodify('.value.',submatch(1))'
       if key =~# '\U'
         let value = printf(config.command =~ '^\s*:' ? 'fnameescape(%s)'
