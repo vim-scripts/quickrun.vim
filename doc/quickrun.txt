@@ -1,13 +1,13 @@
 *quickrun.txt*	Run a command and show its result quickly.
 
-Version: 0.4.5
+Version: 0.4.7
 Author : thinca <thinca+vim@gmail.com>
 Eng[rl]ish document by: tyru <tyru.exe@gmail.com>
 License: Creative Commons 2.1 Japanese
          <http://creativecommons.org/licenses/by/2.1/jp/>
 
 ==============================================================================
-CONTENTS						*quickrun-contents*
+CONTENTS					*quickrun-contents*
 
 INTRODUCTION			|quickrun-introduction|
 INTERFACE			|quickrun-interface|
@@ -22,7 +22,7 @@ CHANGELOG			|quickrun-changelog|
 
 
 ==============================================================================
-INTRODUCTION						*quickrun-introduction*
+INTRODUCTION					*quickrun-introduction*
 
 *quickrun* is Vim plugin to execute whole/part of editing file.
 It provides |:QuickRun| for it.
@@ -34,7 +34,7 @@ Latest Version:
 http://github.com/thinca/vim-quickrun
 
 
-							*quickrun-synopsis*
+						*quickrun-synopsis*
 >
 	" Execute current buffer.
 	:QuickRun
@@ -94,10 +94,11 @@ COMMANDS					*quickrun-commands*
 
 	|:Quickrun| can take |:range|.
 	if it was not given, |:QuickRun| treats whole lines.
-	If you specify '<,'> and do not specify -mode (|quickrun-option-mode|),
-	target is selected text in visual mode. And |blockwise-visual| also works.
-	But when |:QuickRun| is executed from key mapping, you need to specify -mode
-	because |:QuickRun| can't detect current mode.
+	If you specify '<,'> and do not specify -mode
+	(|quickrun-option-mode|), target is selected text in visual mode. And
+	|blockwise-visual| also works.  But when |:QuickRun| is executed from
+	key mapping, you need to specify -mode because |:QuickRun| can't
+	detect current mode.
 
 
 ------------------------------------------------------------------------------
@@ -200,10 +201,10 @@ runmode					*quickrun-option-runmode*
 			- "async:vimproc[:{updatetime}]"
 			  {You need |vimproc| and |vimshell|}
 			  Run command asynchronously using |vimproc|.
-			  Polling the process exit with |CursorHold| and |CursorHoldI|.
-			  If optional argument {updatetime} is given,
-			  change 'updatetime' value while the process lives.
-			  If the process exits within 50 milliseconds,
+			  Polling the process exit with |CursorHold| and
+			  |CursorHoldI|.  If optional argument {updatetime} is
+			  given, change 'updatetime' value while the process
+			  lives.  If the process exits within 50 milliseconds,
 			  shows the result instantly.
 			- "async:remote"
 			  {You need Vim compiled with |+clientserver|}
@@ -238,7 +239,7 @@ split (*)				*quickrun-option-split*
 			Because if there is no buffer in opened tabpage,
 			quickrun opens new output buffer.
 			Default value is
-			'{winwidth(0) * 2 < winheight(0) * 5 ? "" : "vertical"}'.
+		'{winwidth(0) * 2 < winheight(0) * 5 ? "" : "vertical"}'.
 
 into					*quickrun-option-into*
 			If this value is not 0, Move cursor to output buffer
@@ -279,8 +280,8 @@ shellcmd				*quickrun-option-shellcmd*
 			if output is ! .
 			quickrun substitutes %s with commands generated
 			by exec option.
-			On MS Windows, Default value is 'silent !"%s" & pause'.
-			Otherwise '!%s'.
+			On MS Windows, default value is
+			'silent !"%s" & pause'.  Otherwise '!%s'.
 
 eval					*quickrun-option-eval*
 			If this value is not 0, quickrun substitutes src
@@ -369,13 +370,7 @@ Special {type} '_' has default values for all unspecified keys by each
 
 Options given by command-line has higher priority than {type} specific
 settings.
-And {type} specific settings has higher priority than {type} '*' settings,
-
-|g:quickrun_config|'s default value (it is |g:quickrun#default_config|)
-is initialized when quickrun is loaded.
-At that time, (for e.g., in  your .vimrc) If it is defined,
-quickrun overwrites default value with your value.
-
+And {type} specific settings has higher priority than {type} '_' settings.
 
 Default settings				*g:quickrun#default_config*
 ----------------
@@ -400,6 +395,10 @@ Here is the order to have higher priorities.
 4. |g:quickrun#default_config|'s {type}
 5. |g:quickrun_config|'s '_'
 6. |g:quickrun#default_config|'s '_'
+
+If you set {type} with 1 or 2, it will be loaded by 3 and 4.
+In addition, if you set {type} with 3 or 4, {type} is overwrote and reload the
+current (3 or 4) config.  Note infinite loop.
 
 
 

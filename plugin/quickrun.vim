@@ -1,5 +1,5 @@
 " Run commands quickly.
-" Version: 0.4.5
+" Version: 0.4.7
 " Author : thinca <thinca+vim@gmail.com>
 " License: Creative Commons Attribution 2.1 Japan License
 "          <http://creativecommons.org/licenses/by/2.1/jp/deed.en>
@@ -21,7 +21,7 @@ endfunction
 
 
 command! -nargs=* -range=% -complete=customlist,quickrun#complete QuickRun
-\ call quickrun#run('-start <line1> -end <line2> ' . <q-args>)
+\ call quickrun#command('-start <line1> -end <line2> ' . <q-args>)
 
 
 nnoremap <silent> <Plug>(quickrun-op) :<C-u>set operatorfunc=QuickRun<CR>g@
