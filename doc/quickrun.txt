@@ -6,7 +6,7 @@ English documentation by:
   * ujihisa <ujihisa at gmail com>
   * tyru <tyru.exe@gmail.com>
 License: Creative Commons 2.1 Japanese
-	 <http://creativecommons.org/licenses/by/2.1/jp/>
+         <http://creativecommons.org/licenses/by/2.1/jp/>
 
 ==============================================================================
 CONTENTS					*quickrun-contents*
@@ -29,6 +29,8 @@ CREATE MODULE			|quickrun-create-module|
   MODULE COMMON ATTRIBUTES	  |quickrun-module-attributes|
   RUNNER ATTRIBUTES		  |quickrun-runner-attributes|
   OUTPUTTER ATTRIBUTES		  |quickrun-outputter-attributes|
+SETTING EXAMPLES		|quickrun-examples|
+KNOWN ISSUES			|quickrun-known-issues|
 CHANGELOG			|quickrun-changelog|
 
 
@@ -124,13 +126,20 @@ quickrun#operator({wise})			*quickrun#operator()*
 						*quickrun#register_module()*
 quickrun#register_module({kind}, {name}, {module})
 	Registers {module}. See details in |quickrun-create-module|.
+	Unregisters a registered module if {module} is empty.
 
 quickrun#register_runner({name}, {runner})	*quickrun#register_runner()*
 	An alias of quickrun#register_module("runner", {name}, {runner}).
 
-						*quickrun#register_outputter()*
+					       *quickrun#register_outputter()*
 quickrun#register_outputter({name}, {outputter})
-	An alias of quickrun#register_module("outputter", {name}, {outputter}).
+	An alias of quickrun#register_module("outputter", {name},
+	{outputter}).
+
+quickrun#get_module({kind} [, {name}])		*quickrun#get_module()*
+	Returns the registered module.  Returns the all registered {kind}
+	modules by |Dictionary| if you skipped {name}.  Returns a empty
+	dictionary if the module named {name} had not registered.
 
 						*quickrun#session()*
 quickrun#session({key} [, {func-name} [, {args} ...]])
@@ -138,13 +147,17 @@ quickrun#session({key} [, {func-name} [, {args} ...]])
 	you skipped {func-name}. This calls the session function with
 	arguments {args} if you specified {func-name}.
 
+quickrun#sweep_sessions()			*quickrun#sweep_sessions()*
+	Stops the sessions under execution. This is called before new
+	execution.  When execution doesn't end, you can call this by manually.
+
 
 ------------------------------------------------------------------------------
 KEY MAPPINGS					*quickrun-key-mappings*
 
 <Plug>(quickrun-op)				*<Plug>(quickrun-op)*
 			Execute next motion's range.
-			This sets 'operatorfunc' to "QuickRun".
+			This sets 'operatorfunc' to "quickrun#operator".
 
 <Plug>(quickrun)				*<Plug>(quickrun)*
 			Execute and display the result for current buffer.
@@ -186,6 +199,10 @@ command					*quickrun-option-command*
 cmdopt (*)				*quickrun-option-cmdopt*
 			String expanded to %o in exec.
 
+srcfile (*)				*quickrun-option-srcfile*
+			Source file of program.  If this is specified, "src"
+			is not used.
+
 src					*quickrun-option-src*
 			Executed program.
 			Default value is whole lines of editing file.
@@ -200,11 +217,11 @@ input (*)				*quickrun-option-input*
 
 outputter				*quickrun-option-outputter*
 			Specifies an outputter. See the details in
-			|quickrun-outputter|.
+			|quickrun-module-outputter|.
 
 runner					*quickrun-option-runner*
 			Specifies a runner. See the details in
-			|quickrun-runner|.
+			|quickrun-module-runner|.
 
 mode					*quickrun-option-mode*
 			This value is one of n, v, o .
@@ -328,6 +345,8 @@ Options given by command-line has higher priority than {type} specific
 settings.
 And {type} specific settings has higher priority than {type} '_' settings.
 
+See alto |quickrun-examples| about well-known examples.
+
 Default settings				*g:quickrun#default_config*
 ----------------
 |g:quickrun#default_config| has default settings
@@ -358,7 +377,7 @@ current (3 or 4) config.  Note infinite loop.
 
 
 ==============================================================================
-MODULE					*quickrun-module*
+MODULE						*quickrun-module*
 
 |quickrun| is structured modularly. There are the following kinds of modules.
 
@@ -417,10 +436,10 @@ RUNNER						*quickrun-module-runner*
 Runner is a module to run a program. The following runners are available by
 default. NOTE: Everything except for "system" can be unstable.
 
-- "system"
+- "system"				*quickrun-module-runner/system*
   Runs by |system()|. This is the default.
 
-- "shell"
+- "shell"				*quickrun-module-runner/shell*
   Runs by |:!|. This ignores given outputter.
   Option ~
   {shellcmd}		Default: 'silent !"%s" & pause' for MS Windows
@@ -428,7 +447,7 @@ default. NOTE: Everything except for "system" can be unstable.
 	The template of the Vim command to run. This replaces %s to the
 	command given in exec option.
 
-- "vimproc"
+- "vimproc"				*quickrun-module-runner/vimproc*
   {Requirement: |vimproc|}
   Runs by |vimproc| in background. This checks if the process completed with
   using |CursorHold| |CursorHoldI| events. If the process completed within 50
@@ -437,7 +456,7 @@ default. NOTE: Everything except for "system" can be unstable.
   {updatetime}		Default: 0
 	Changes 'updatetime' to the value temporary. Stays same if this is 0.
 
-- "remote"
+- "remote"				*quickrun-module-runner/remote*
   {Requirement: |+clientserver|}
   Runs in background and fetches the result by |+clientserver| feature.
   This requires |v:servername| to be set. If Vim doesn't, run it with
@@ -450,7 +469,7 @@ default. NOTE: Everything except for "system" can be unstable.
 	Runs by |vimproc| if it's available. You can cancel the process after
 	it ran.
 
-- "python"
+- "python"				*quickrun-module-runner/python*
   {Requirement: |+python|}
   Runs by |python| thread asynchronously.
   WARNING: This is absolutely unstable.
@@ -463,7 +482,7 @@ OUTPUTTER					*quickrun-module-outputter*
 Outputter is a module to output the result. The following outputters are
 available by default.
 
-- "buffer"
+- "buffer"				*quickrun-module-outputter/buffer*
   quickrun opens output buffer and displays to the output buffer.  If output
   buffer already exists, quickrun uses it.  And for customize, quickrun sets
   "quickrun" to 'filetype' of this buffer. This is the default.
@@ -481,13 +500,13 @@ available by default.
 	If this value is not an empty string, |quickrun| displays this string
 	to output buffer while it's running.
 
-- "message"
+- "message"				*quickrun-module-outputter/message*
   Outputs on |messages|.
   Option ~
   {log}			Default: 0
 	Outputs on |message-history| is it's 1.
 
-- "variable"
+- "variable"				*quickrun-module-outputter/variable*
   Outputs on a variable. You also can let it output on an environment variable
   or an option.
   Option ~
@@ -496,7 +515,7 @@ available by default.
   {append}		Default: 0
 	Appends if it's 1.
 
-- "file"
+- "file"				*quickrun-module-outputter/file*
   Outputs on a file.
   Option ~
   {name}		Default: ''
@@ -504,13 +523,13 @@ available by default.
   {append}		Default: 0
 	Appends if it's 1.
 
-- "quickfix"
+- "quickfix"				*quickrun-module-outputter/quickfix*
   Outputs on |quickfix|.
   Option ~
   {errorformat}		Default: "&errorformat"
 	'errorformat' option to parse the output.
 
-- "browser"
+- "browser"				*quickrun-module-outputter/browser*
   {Requires |open-browser|}
   Opens the output on browser, using |open-browser|.
   Option ~
@@ -521,21 +540,21 @@ available by default.
   {append}		Default: 0
 	Appends if it's 1.
 
-- "buffered"
+- "buffered"				*quickrun-module-outputter/buffered*
   Buffers the output, and shows the whole result at once finally.
   Option ~
   {target}		Default: ''
 	The outputter to show the result.
 
-- "multi"
+- "multi"				*quickrun-module-outputter/multi*
   Outputs multiple outputters at the same time.
   Option ~
   {targets}		Default: []
 	A list of outputters to output.
 
-- "error"
-  Switches where to output based on the exit status; 0 means success. Note that
-  some runners only can give success.
+- "error"				*quickrun-module-outputter/error*
+  Switches where to output based on the exit status; 0 means success. Note
+  that some runners only can give success.
   This buffers because this waits the process terminates.
   Option ~
   {success}		Default: "null"
@@ -543,7 +562,7 @@ available by default.
   {error}		Default: "null"
 	The outputter when it failed.
 
-- "null"
+- "null"				*quickrun-module-outputter/null*
   No outputs.
 
 
@@ -598,13 +617,14 @@ session.sweep()				*quickrun-session.sweep()*
 	  value.
 	- If it has an attribute begins with "_autocmd_", deletes all autocmd
 	  belonging to "plugin-quickrun-{value}".
-	- If it has an attribute "_vimproc", forcefully terminates the |vimproc|.
+	- If it has an attribute "_vimproc", forcefully terminates the
+	  |vimproc|.
 	Or calls |quickrun-runner.sweep()|.
 	They are handy, however, they don't care naming colisions by multiple
 	modules. The author is going to solve them in the future.
 
 ------------------------------------------------------------------------------
-MODULE COMMON ATTRIBUTES				*quickrun-module-attributes*
+MODULE COMMON ATTRIBUTES		*quickrun-module-attributes*
 
 Most module attributes have default values, so you don't have to explicitly
 set unless it requires one. Of course you can overwrite the default value if
@@ -658,6 +678,45 @@ outputter.output({data}, {session})	*quickrun-outputter.output()*
 outputter.finish({session})		*quickrun-outputter.finish()*
 	Called in termination for finishing it. You can refer
 	|quickrun-session.exit_code|.
+
+
+
+==============================================================================
+SETTING EXAMPLES				*quickrun-examples*
+
+Converts a markdown buffer to html by pandoc, and opens it on browser.
+requirement: |open-browser.vim|
+
+>
+	let g:quickrun_config['markdown'] = {
+	      \ 'type': 'markdown/pandoc',
+	      \ 'cmdopt': '-s',
+	      \ 'outputter': 'browser'
+	      \ }
+<
+
+where you already defined |g:quickrun_config| by like the following code.
+>
+	let g:quickrun_config = {}
+<
+
+
+
+==============================================================================
+KNOWN ISSUES					*quickrun-known-issues*
+
+- |quickrun-module-runner/vimproc| doesn't support : to run a Vim command.
+
+- It depends on runner how to handle multiple stdins when you gave multiple
+  commands
+
+- Quickrun cannot distinguish stdout from stderr.
+  - It depends on runner which order to output.
+
+- Vim command that contains |:redir| command can not run.
+  - quickrun.vim gets the output of vim script by |:redir| command. And,
+    |:redir| can not nest.
+  - If you not need the output, use |quickrun-module-runner/shell|.
 
 
 

@@ -16,19 +16,20 @@ let s:outputter = {
 \ }
 
 function! s:outputter.init(session)
-  let winnr = winnr()
-  call s:open_result_window(self.config.split)
-  if !self.config.append
-    silent % delete _
-  endif
-  let self._line = line('$')
-  call s:set_running_mark(self.config.running_mark)
-  execute winnr 'wincmd w'
+  let self._append = self.config.append
+  let self._line = 0
 endfunction
 
 function! s:outputter.output(data, session)
   let winnr = winnr()
   call s:open_result_window(self.config.split)
+  if !self._append
+    silent % delete _
+    let self._append = 1
+  endif
+  if self._line == 0
+    let self._line = line('$')
+  endif
   let oneline = line('$') == 1
   let data = getline('$') . a:data
   silent $ delete _
@@ -47,12 +48,25 @@ function! s:outputter.output(data, session)
     silent 1 delete _
   endif
   call s:set_running_mark(self.config.running_mark)
-  redraw
   execute winnr 'wincmd w'
+  redraw
 endfunction
 
 function! s:outputter.finish(session)
   let winnr = winnr()
+
+  if self._line == 0  " no output
+    " clear the buffer if already opened.
+    if exists('s:bufnr') && bufwinnr(s:bufnr) != -1
+      execute bufwinnr(s:bufnr) 'wincmd w'
+      silent % delete _
+      if !self.config.into
+        execute winnr 'wincmd w'
+      endif
+    endif
+    return
+  endif
+
   call s:open_result_window(self.config.split)
   execute self._line
   silent normal! zt

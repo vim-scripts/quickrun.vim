@@ -1,5 +1,5 @@
 " Run commands quickly.
-" Version: 0.5.0
+" Version: 0.5.1
 " Author : thinca <thinca+vim@gmail.com>
 " License: Creative Commons Attribution 2.1 Japan License
 "          <http://creativecommons.org/licenses/by/2.1/jp/deed.en>
@@ -13,8 +13,8 @@ let s:save_cpo = &cpo
 set cpo&vim
 
 
-command! -nargs=* -range=% -complete=customlist,quickrun#complete QuickRun
-\ call quickrun#command('-start <line1> -end <line2> ' . <q-args>)
+command! -nargs=* -range=0 -complete=customlist,quickrun#complete QuickRun
+\ call quickrun#command(<q-args>, <count>, <line1>, <line2>)
 
 
 nnoremap <silent> <Plug>(quickrun-op)

@@ -1,6 +1,6 @@
 *quickrun.txt*	コマンドを素早く実行します。
 
-Version: 0.5.0
+Version: 0.5.1
 Author: thinca <thinca+vim@gmail.com>
 英訳:
   * ujihisa <ujihisa at gmail com>
@@ -29,6 +29,8 @@ License: クリエイティブ・コモンズの表示 2.1 日本ライセンス
   共通の属性			  |quickrun-module-attributes|
   RUNNER の属性			  |quickrun-runner-attributes|
   OUTPUTTER の属性		  |quickrun-outputter-attributes|
+設定例				|quickrun-examples|
+既知の問題			|quickrun-known-issues|
 更新履歴			|quickrun-changelog|
 
 
@@ -122,7 +124,7 @@ quickrun#operator({wise})			*quickrun#operator()*
 						*quickrun#register_module()*
 quickrun#register_module({kind}, {name}, {module})
 	{module} を登録します。詳しくは |quickrun-create-module| を参照してく
-	ださい。
+	ださい。{module} が空の辞書の場合、登録済みのモジュールを削除します。
 
 quickrun#register_runner({name}, {runner})	*quickrun#register_runner()*
 	quickrun#register_module("runner", {name}, {runner}) の省略形です。
@@ -132,12 +134,21 @@ quickrun#register_outputter({name}, {outputter})
 	quickrun#register_module("outputter", {name}, {outputter}) の省略形で
 	す。
 
+quickrun#get_module({kind} [, {name}])		*quickrun#get_module()*
+	登録済みのモジュールを取得します。{name} を省略した場合、登録された全
+	ての {kind} モジュールを含む辞書を返します。{name} で指定した辞書が登
+	録されていなかった場合は空の辞書を返します。
+
 						*quickrun#session()*
 quickrun#session({key} [, {func-name} [, {args} ...]])
 	モジュール内で使用されます。
 	{func-name} を省略すると、継続中のセッションを取得します。
 	{func-name} を指定すると、{args} を引数にしてセッションの関数を呼び出
 	します。
+
+quickrun#sweep_sessions()			*quickrun#sweep_sessions()*
+	実行中のセッションを強制的に終了します。新しく実行を行う前に呼び出され
+	ます。実行が終わらない場合は、手動で呼び出すこともできます。
 
 
 ------------------------------------------------------------------------------
@@ -183,6 +194,10 @@ command					*quickrun-option-command*
 cmdopt (*)				*quickrun-option-cmdopt*
 	exec 内の %o に展開される文字列です。
 
+srcfile (*)				*quickrun-option-srcfile*
+	実行するプログラムのソースファイルです。これが指定された場合、"src" は
+	使われません。
+
 src					*quickrun-option-src*
 	実行するプログラムのソースとなる文字列を指定します。デフォルトでは編集
 	中のファイル全体ですが、指定することで変更が可能です。
@@ -195,16 +210,17 @@ input (*)				*quickrun-option-input*
 	それ以降の文字列を入力として扱います。
 
 outputter				*quickrun-option-outputter*
-	outputter を指定します。詳細は |quickrun-outputter| を参照してくださ
-	い。
+	outputter を指定します。詳細は |quickrun-module-outputter| を参照して
+	ください。
 
 runner					*quickrun-option-runner*
-	runner を指定します。詳細は |quickrun-runner| を参照してください。
+	runner を指定します。詳細は |quickrun-module-runner| を参照してくださ
+	い。
 
 mode					*quickrun-option-mode*
-	実行モードです。n,v,o のいずれかを指定します。これは範囲をどのように取
-	得するかに影響します。ただし、多くの場合は自動で設定されるので必要あり
-	ません。
+	実行モードです。n,v のいずれかを指定します。これは範囲をどのように取得
+	するかに影響します。ただし、多くの場合は自動で設定されるので必要ありま
+	せん。
 	キーマッピングからコマンド全体を入力する場合に指定が必要です。
 	例: >
 		nnoremap <silent> <F5> :QuickRun -mode n<CR>
@@ -305,6 +321,8 @@ exec を展開した結果先頭の文字が ":" だった場合、Vim のコマ
 全体共通の設定よりタイプ毎の設定が、タイプ毎の設定よりコマンドで指定された引数
 が優先されます。
 
+他、よくある設定例を |quickrun-examples| に掲載しています。
+
 標準の設定					*g:quickrun#default_config*
 ----------
 |g:quickrun#default_config| には標準的なデフォルトの設定が入っています。これ
@@ -396,10 +414,10 @@ runner はプログラムを実行するモジュールです。
 デフォルトでは以下の runner が使えます。
 NOTE: "system" 以外は不安定な場合があります。
 
-- "system"
+- "system"				*quickrun-module-runner/system*
   |system()| を使って実行します。これが既定値です。
 
-- "shell"
+- "shell"				*quickrun-module-runner/shell*
   |:!| を使って実行します。この runner は outputter を無視します。
   オプション ~
   {shellcmd}		デフォルト: MS Windows の場合は 'silent !"%s" & pause'
@@ -407,7 +425,7 @@ NOTE: "system" 以外は不安定な場合があります。
 	実行する Vim コマンドのテンプレートです。%s が exec オプションで生成さ
 	れたコマンドに置換されます。
 
-- "vimproc"
+- "vimproc"				*quickrun-module-runner/vimproc*
   {|vimproc| が必要}
   |vimproc| を使ってコマンドをバックグラウンドで実行します。実行の完了を
   |CursorHold| と |CursorHoldI| イベントを使って検査します。50 ミリ秒以内に実
@@ -416,7 +434,7 @@ NOTE: "system" 以外は不安定な場合があります。
   {updatetime}		デフォルト: 0
 	一時的に 'updatetime' をこの値に変更します。0 の場合は変更しません。
 
-- "remote"
+- "remote"				*quickrun-module-runner/remote*
   {|+clientserver| が必要}
   コマンドをバックグラウンドで実行し、終了を |+clientserver| 機能を利用して通
   知し結果を表示します。
@@ -429,7 +447,7 @@ NOTE: "system" 以外は不安定な場合があります。
 	可能ならば |vimproc| でコマンドを実行します。これにより、実行のキャン
 	セルが可能になります。
 
-- "python"
+- "python"				*quickrun-module-runner/python*
   {|+python| が必要}
   |python| のスレッドを利用してコマンドを非同期実行します。
   警告: これは非常に不安定です。
@@ -442,7 +460,7 @@ OUTPUTTER					*quickrun-module-outputter*
 outputter は結果の出力を行うモジュールです。
 デフォルトでは以下の outputter が使えます。
 
-- "buffer"
+- "buffer"				*quickrun-module-outputter/buffer*
   出力専用バッファを開いてそこへ出力します。このバッファは同じものが再利用され
   ます。このバッファにはカスタマイズのために 'filetype' に "quickrun" が設定さ
   れます。これが既定値です。
@@ -460,13 +478,13 @@ outputter は結果の出力を行うモジュールです。
 	この値が空文字列でない場合、実行中にこの文字列が出力先に表示されます。
 	表示は実行完了後に削除されます。
 
-- "message"
+- "message"				*quickrun-module-outputter/message*
   |messages| に出力します。
   オプション ~
   {log}			デフォルト: 0
 	1 の場合、出力を |message-history| に記録します。
 
-- "variable"
+- "variable"				*quickrun-module-outputter/variable*
   変数に対して出力します。環境変数やオプションに対しても出力可能です。
   オプション ~
   {name}		デフォルト: ''
@@ -474,7 +492,7 @@ outputter は結果の出力を行うモジュールです。
   {append}		デフォルト: 0
 	1 の場合は追記を行います。
 
-- "file"
+- "file"				*quickrun-module-outputter/file*
   ファイルに対して出力します。
   オプション ~
   {name}		デフォルト: ''
@@ -482,13 +500,13 @@ outputter は結果の出力を行うモジュールです。
   {append}		デフォルト: 0
 	1 の場合は追記を行います。
 
-- "quickfix"
+- "quickfix"				*quickrun-module-outputter/quickfix*
   |quickfix| へ出力します。
   オプション ~
   {errorformat}		デフォルト: "&errorformat"
 	出力を解釈するための 'errorformat' オプションの値です。
 
-- "browser"
+- "browser"				*quickrun-module-outputter/browser*
   {|open-browser| が必要}
   |open-browser| を使って、結果をブラウザで開きます。
   オプション ~
@@ -500,19 +518,19 @@ outputter は結果の出力を行うモジュールです。
   {append}		デフォルト: 0
 	1 の場合はファイルに対して追記を行います。
 
-- "buffered"
+- "buffered"				*quickrun-module-outputter/buffered*
   出力をバッファリングして、最後に一度に出力します。
   オプション ~
   {target}		デフォルト: ''
 	実際の出力に使う outputter です。
 
-- "multi"
+- "multi"				*quickrun-module-outputter/multi*
   複数の outputter に対して同時に出力を行います。
   オプション ~
   {targets}		デフォルト: []
 	実際の出力に使う outputter のリストです。
 
-- "error"
+- "error"				*quickrun-module-outputter/error*
   実行が正常終了した場合とそうでない場合で outputter を変えます。終了コードが
   0 の場合を正常終了とします。ただし、runner によっては常に正常終了となってし
   まうことがあります。
@@ -523,7 +541,7 @@ outputter は結果の出力を行うモジュールです。
   {error}		デフォルト: "null"
 	実行の失敗時に使う outputter です。
 
-- "null"
+- "null"				*quickrun-module-outputter/null*
   出力を行いません。
 
 
@@ -640,7 +658,52 @@ outputter.finish({session})		*quickrun-outputter.finish()*
 
 
 ==============================================================================
+SETTING EXAMPLES				*quickrun-examples*
+
+pandocを使用してmarkdownをhtmlにしてブラウザで開く (要|open-browser.vim|)
+
+>
+	let g:quickrun_config['markdown'] = {
+	      \ 'type': 'markdown/pandoc',
+	      \ 'cmdopt': '-s',
+	      \ 'outputter': 'browser'
+	      \ }
+<
+
+ただし既に以下のようにして|g:quickrun_config| が定義されていると仮定していま
+す。
+>
+	let g:quickrun_config = {}
+<
+
+
+
+==============================================================================
+既知の問題					*quickrun-known-issues*
+
+- : による Vim コマンドの実行は、|quickrun-module-runner/vimproc| では動きませ
+  ん。
+
+- コマンドが複数ある場合の標準入力の扱いは runner に依存します。
+
+- 標準出力と標準エラー出力を区別できません。
+  - 出力順序は runner に依存します。
+
+- |:redir| コマンドを含む Vim コマンドは実行できません。
+  - これは quickrun.vim が出力を得るために |:redir| を使っているためです。そし
+    て |:redir| はネストできません。
+  - 出力が必要ない場合は、|quickrun-module-runner/shell| を使ってください。
+
+
+
+==============================================================================
 更新履歴					*quickrun-changelog*
+
+0.5.1	2011-10-21
+	- "srcfile" オプション(|quickrun-option-srcfile|)を追加。
+	- |quickrun#get_module()| を追加。
+	- |quickrun#register_module()| でモジュールを削除できるようにした。
+	- exec の展開処理を改善。
 
 0.5.0	2011-07-05
 	- モジュールシステムを導入。
