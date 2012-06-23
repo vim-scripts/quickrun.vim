@@ -8,18 +8,27 @@ Default is set in the following languages:
 - awk
 - bash
 - c
+- clojure
+- coffee
 - cpp
+- cs
+- d
+- dart
 - dosbatch
 - erlang
 - eruby
+- fortran
 - go
 - groovy
 - haskell
 - io
 - java
 - javascript
+- jsx
+- lisp
 - llvm
 - lua
+- markdown
 - ocaml
 - perl
 - perl6
@@ -27,11 +36,13 @@ Default is set in the following languages:
 - python
 - r
 - ruby
+- rust
 - scala
 - scheme
 - sed
 - sh
 - vim
+- wsh
 - zsh
 
 You can add settings for other languages and situations.
